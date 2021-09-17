@@ -1,0 +1,7 @@
+version: v1beta1
+name: buf.build/kevinsnydercodes/go-todo
+deps:
+  - buf.build/googleapis/googleapis
+build:
+  roots:
+    - proto

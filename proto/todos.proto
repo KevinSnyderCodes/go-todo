@@ -1,0 +1,66 @@
+syntax = "proto3";
+package proto;
+
+option go_package = "github.com/kevinsnydercodes/go-todo/internal/proto";
+
+import "google/api/annotations.proto";
+
+service TodosV1 {
+  rpc GetTodo (GetTodoRequest) returns (GetTodoResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/todos/{id}"
+    };
+  }
+
+	rpc ListTodos (ListTodosRequest) returns (ListTodosResponse) {
+		option (google.api.http) = {
+			get: "/api/v1/todos"
+		};
+	}
+
+	rpc CreateTodo (CreateTodoRequest) returns (CreateTodoResponse) {
+		option (google.api.http) = {
+			post: "/api/v1/todos"
+			body: "*"
+		};
+	}
+
+	rpc DeleteTodo (DeleteTodoRequest) returns (DeleteTodoResponse) {
+		option (google.api.http) = {
+			delete: "/api/v1/todos/{id}"
+		};
+	}
+}
+
+message Todo {
+	int64 id = 1;
+	string title = 2;
+}
+
+message GetTodoRequest {
+	int64 id = 1;
+}
+
+message GetTodoResponse {
+	Todo todo = 1;
+}
+
+message ListTodosRequest {}
+
+message ListTodosResponse {
+	repeated Todo todos = 1;
+}
+
+message CreateTodoRequest {
+	Todo todo = 1;
+}
+
+message CreateTodoResponse {
+	Todo todo = 1;
+}
+
+message DeleteTodoRequest {
+	int64 id = 1;
+}
+
+message DeleteTodoResponse {}
