@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 
@@ -24,9 +26,11 @@ import (
 	postgresdb "github.com/kevinsnydercodes/go-todo/internal/database/postgres"
 	"github.com/kevinsnydercodes/go-todo/internal/proto"
 	"github.com/kevinsnydercodes/go-todo/internal/server"
+	"github.com/kevinsnydercodes/go-todo/internal/util"
 )
 
 var (
+	fPort             = flag.String("port", cli.LookupEnvOrString("PORT", "8080"), "port")
 	fPostgresHost     = flag.String("postgres-host", cli.LookupEnvOrString("POSTGRES_HOST", "db"), "postgres host")
 	fPostgresUsername = flag.String("postgres-username", cli.LookupEnvOrString("POSTGRES_USERNAME", "postgres"), "postgres username")
 	fPostgresPassword = flag.String("postgres-password", cli.LookupEnvOrString("POSTGRES_PASSWORD", "postgres"), "postgres password")
@@ -54,17 +58,35 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
 func run() error {
 	ctx := context.Background()
 
-	// TODO: Replace sleep with retry
-	time.Sleep(5 * time.Second)
-
-	db, err := sql.Open("postgres", fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=%s", *fPostgresHost, *fPostgresUsername, *fPostgresPassword, *fPostgresDB, *fPostgresSSLMode))
+	port, err := strconv.Atoi(*fPort)
 	if err != nil {
-		return fmt.Errorf("error opening database: %w", err)
+		return fmt.Errorf("error converting port to integer: %w", err)
 	}
 
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
-		return fmt.Errorf("error creating driver with instance: %w", err)
+	retryOptions := util.RetryOptions{
+		Times: 10,
+		Wait:  5 * time.Second,
+	}
+
+	var db *sql.DB
+	var driver database.Driver
+
+	if err := util.Retry(func() error {
+		var err error
+
+		db, err = sql.Open("postgres", fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=%s", *fPostgresHost, *fPostgresUsername, *fPostgresPassword, *fPostgresDB, *fPostgresSSLMode))
+		if err != nil {
+			return fmt.Errorf("error opening database: %w", err)
+		}
+
+		driver, err = postgres.WithInstance(db, &postgres.Config{})
+		if err != nil {
+			return fmt.Errorf("error creating driver with instance: %w", err)
+		}
+
+		return nil
+	}, &retryOptions); err != nil {
+		return fmt.Errorf("error retrying: %w", err)
 	}
 
 	m, err := migrate.NewWithDatabaseInstance("file:///etc/go-todo/sql/migrations", "postgres", driver)
@@ -88,13 +110,15 @@ func run() error {
 	grpcServer := grpc.NewServer()
 	proto.RegisterTodosV1Server(grpcServer, server.NewTodosV1(queries))
 
-	if err := proto.RegisterTodosV1HandlerFromEndpoint(ctx, gwmux, "localhost:8080", dopts); err != nil {
+	if err := proto.RegisterTodosV1HandlerFromEndpoint(ctx, gwmux, fmt.Sprintf("localhost:%d", port), dopts); err != nil {
 		return fmt.Errorf("error registering todos v1 handler from endpoint: %w", err)
 	}
 
-	if err := http.ListenAndServe(":8080", grpcHandlerFunc(grpcServer, gwmux)); err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), grpcHandlerFunc(grpcServer, gwmux)); err != nil {
 		return fmt.Errorf("error listening and serving: %w", err)
 	}
+
+	fmt.Printf("Listening on port %d\n", port)
 
 	return nil
 }

@@ -1,6 +1,8 @@
 package cli
 
-import "os"
+import (
+	"os"
+)
 
 func LookupEnvOrString(key string, defaultVal string) string {
 	if v := os.Getenv(key); v != "" {

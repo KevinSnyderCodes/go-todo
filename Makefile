@@ -8,8 +8,8 @@ proto:
 
 .PHONY: up
 up:
-	docker-compose up --build
+	docker compose up --build
 
 .PHONY: down
 down:
-	docker-compose down
+	docker compose down
