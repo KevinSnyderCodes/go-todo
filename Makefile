@@ -6,10 +6,10 @@ sql:
 proto:
 	cd api && buf generate
 
-.PHONY: up
-up:
-	docker compose up --build
+.PHONY: run
+run:
+	docker compose up --build & (cd web && yarn start)
 
-.PHONY: down
-down:
+.PHONY: stop
+stop:
 	docker compose down
