@@ -22,11 +22,11 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 
-	"github.com/kevinsnydercodes/go-todo/internal/cli"
-	postgresdb "github.com/kevinsnydercodes/go-todo/internal/database/postgres"
-	"github.com/kevinsnydercodes/go-todo/internal/proto"
-	"github.com/kevinsnydercodes/go-todo/internal/server"
-	"github.com/kevinsnydercodes/go-todo/internal/util"
+	"github.com/kevinsnydercodes/go-todo/api/internal/cli"
+	postgresdb "github.com/kevinsnydercodes/go-todo/api/internal/database/postgres"
+	"github.com/kevinsnydercodes/go-todo/api/internal/proto"
+	"github.com/kevinsnydercodes/go-todo/api/internal/server"
+	"github.com/kevinsnydercodes/go-todo/api/internal/util"
 )
 
 var (

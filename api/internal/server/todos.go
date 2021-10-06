@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	postgresdb "github.com/kevinsnydercodes/go-todo/internal/database/postgres"
-	"github.com/kevinsnydercodes/go-todo/internal/proto"
+	postgresdb "github.com/kevinsnydercodes/go-todo/api/internal/database/postgres"
+	"github.com/kevinsnydercodes/go-todo/api/internal/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

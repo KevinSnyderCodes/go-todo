@@ -8,6 +8,12 @@ import axios from "axios";
 const PORT = process.env.PORT || 4000;
 const GRAPHQL_FILENAME =
   process.env.GRAPHQL_FILENAME || path.join("..", "graphql", "todo.graphql");
+const API_HOST = process.env.API_HOST || "http://localhost:8080";
+
+// TODO: Use more sophisticated logger
+console.debug(PORT);
+console.debug(GRAPHQL_FILENAME);
+console.debug(API_HOST);
 
 const schemaFile = fs.readFileSync(GRAPHQL_FILENAME, "utf8");
 
@@ -21,7 +27,7 @@ type GetTodoInput = {
 };
 
 type CreateTodoInput = {
-  todo: {
+  input: {
     title: string;
   };
 };
@@ -31,43 +37,63 @@ type DeleteTodoInput = {
 };
 
 type GetTodoResponse = {
-  todo: Todo
-}
+  todo: Todo;
+};
 
 type ListTodosResponse = {
-  todos: Todo[]
-}
+  todos: Todo[];
+};
 
 type CreateTodoResponse = {
-  todo: Todo
-}
+  todo: Todo;
+};
 
-type DeleteTodoResponse = {}
+type DeleteTodoResponse = {};
 
 const schema = buildSchema(schemaFile);
 
 const root = {
   getTodo: async ({ id }: GetTodoInput): Promise<Todo> => {
-    const response = await axios.get<GetTodoResponse>(`http://localhost:8080/api/v1/todos/${id}`)
+    const response = await axios.get<GetTodoResponse>(
+      `${API_HOST}/api/v1/todos/${id}`
+    );
     return response.data.todo;
   },
   listTodos: async (): Promise<Todo[]> => {
-    const response = await axios.get<ListTodosResponse>("http://localhost:8080/api/v1/todos");
+    const response = await axios.get<ListTodosResponse>(
+      `${API_HOST}/api/v1/todos`
+    );
     return response.data.todos;
   },
-  createTodo: async ({ todo }: CreateTodoInput): Promise<Todo> => {
-    // TODO: Figure out how to not use any type here
-    const response = await axios.post<any>("http://localhost:8080/api/v1/todos", {
-      todo
+  createTodo: async ({ input }: CreateTodoInput): Promise<Todo> => {
+    // TODO: Figure out how to replace any type with CreateTodoResponse type
+    const response = await axios.post<any>(`${API_HOST}/api/v1/todos`, {
+      todo: input,
     });
     return response.data.todo;
   },
   deleteTodo: async ({ id }: DeleteTodoInput) => {
-    await axios.delete<DeleteTodoResponse>(`http://localhost:8080/api/v1/todos/${id}`);
+    await axios.delete<DeleteTodoResponse>(`${API_HOST}/api/v1/todos/${id}`);
   },
 };
 
 const app = express();
+
+// CORS
+app.use(function (req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, Content-Length, X-Requested-With"
+  );
+
+  if ("OPTIONS" === req.method) {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
 
 app.use(
   "/graphql",

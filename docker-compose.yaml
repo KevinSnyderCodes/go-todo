@@ -2,10 +2,11 @@ version: "3.8"
 services:
   api:
     build:
-      context: .
+      context: ./api
     ports:
       - 8080:8080
     environment:
+      PORT: 8080
       POSTGRES_HOST: db
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: postgres
@@ -21,3 +22,12 @@ services:
       POSTGRES_DB: postgres
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
+  graphql-server:
+    build:
+      context: ./graphql-server
+    ports:
+      - 4000:4000
+    environment:
+      PORT: 4000
+      GRAPHQL_FILENAME: /etc/graphql-server/static/graphql/todo.graphql
+      API_HOST: http://api:8080

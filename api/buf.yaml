@@ -1,5 +1,5 @@
 version: v1beta1
-name: buf.build/kevinsnydercodes/go-todo
+name: buf.build/kevinsnydercodes/go-todo/api
 deps:
   - buf.build/googleapis/googleapis
 build:
