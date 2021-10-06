@@ -1,10 +1,10 @@
 .PHONY: sql
 sql:
-	sqlc generate
+	cd api && sqlc generate
 
 .PHONY: proto
 proto:
-	buf generate
+	cd api && buf generate
 
 .PHONY: up
 up:

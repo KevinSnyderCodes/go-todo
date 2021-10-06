@@ -1,0 +1,14 @@
+version: v1
+plugins:
+  - remote: buf.build/library/plugins/go
+    out: internal/proto
+    opt:
+      - paths=source_relative
+  - remote: buf.build/library/plugins/go-grpc
+    out: internal/proto
+    opt:
+      - paths=source_relative
+  - remote: buf.build/grpc-ecosystem/plugins/grpc-gateway
+    out: internal/proto
+    opt:
+      - paths=source_relative

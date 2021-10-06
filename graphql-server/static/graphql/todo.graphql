@@ -1,0 +1,18 @@
+type Todo {
+  id: ID
+  title: String
+}
+
+input CreateTodoInput {
+  title: String
+}
+
+type Query {
+  getTodo(id: ID): Todo
+  listTodos: [Todo]
+}
+
+type Mutation {
+  createTodo(input: CreateTodoInput): Todo
+  deleteTodo(id: ID): ID
+}

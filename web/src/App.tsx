@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+
 import {
   Checkbox,
+  CircularProgress,
   Container,
   FormControl,
   IconButton,
@@ -13,95 +15,165 @@ import {
   TextField,
 } from "@mui/material";
 import { Delete as DeleteIcon } from "@mui/icons-material";
-// import './App.css';
+
+import { useQuery, useMutation, gql } from "@apollo/client";
 
 type Todo = {
   id: number;
   title: string;
 };
 
+const LIST_TODOS = gql`
+  query ListTodos {
+    listTodos {
+      id
+      title
+    }
+  }
+`;
+
+type ListTodosResponse = {
+  listTodos: Todo[];
+};
+
+const CREATE_TODO = gql`
+  mutation CreateTodo($input: CreateTodoInput) {
+    createTodo(input: $input) {
+      id
+      title
+    }
+  }
+`;
+
+type CreateTodoResponse = {
+  createTodo: Todo;
+};
+
+const DELETE_TODO = gql`
+  mutation DeleteTodo($id: ID) {
+    deleteTodo(id: $id)
+  }
+`;
+
+type DeleteTodoResponse = {};
+
+function TodoList() {
+  const { loading, error, data } = useQuery<ListTodosResponse>(LIST_TODOS);
+
+  if (loading) return <p>Loading...</p>;
+  if (error) {
+    console.error(error);
+    return <p>Error!</p>;
+  }
+
+  let todos: Todo[] = [];
+  if (data) todos = data.listTodos;
+
+  return (
+    <List>
+      {todos.map((todo) => (
+        <TodoItem todo={todo} />
+      ))}
+    </List>
+  );
+}
+
+type TodoItemProps = {
+  todo: Todo;
+};
+
+function TodoItem({ todo }: TodoItemProps) {
+  const [deleteTodo, { loading, error, data }] =
+    useMutation<DeleteTodoResponse>(DELETE_TODO, {
+      refetchQueries: [LIST_TODOS],
+      awaitRefetchQueries: true,
+    });
+
+  if (error) {
+    console.error(error);
+    return <p>Error!</p>;
+  }
+
+  return (
+    <ListItem
+      key={todo.id}
+      secondaryAction={
+        loading ? (
+          <CircularProgress />
+        ) : (
+          <IconButton
+            onClick={() => {
+              deleteTodo({
+                variables: {
+                  id: todo.id,
+                },
+              });
+            }}
+          >
+            <DeleteIcon />
+          </IconButton>
+        )
+      }
+    >
+      <ListItemButton>
+        <ListItemIcon>
+          <Checkbox />
+        </ListItemIcon>
+        <ListItemText primary={todo.title} />
+      </ListItemButton>
+    </ListItem>
+  );
+}
+
+function TodoInput() {
+  const [value, setValue] = useState("");
+  const [createTodo, { loading, error, data }] =
+    useMutation<CreateTodoResponse>(CREATE_TODO, {
+      refetchQueries: [LIST_TODOS],
+    });
+
+  if (loading) return <p>Loading...</p>;
+  if (error) {
+    console.error(error);
+    return <p>Error!</p>;
+  }
+
+  return (
+    <List>
+      <ListItem>
+        <FormControl>
+          <TextField
+            fullWidth
+            label="Enter a todo..."
+            value={value}
+            onChange={(e) => {
+              setValue(e.target.value);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                createTodo({
+                  variables: {
+                    input: {
+                      title: value,
+                    },
+                  },
+                });
+                setValue("");
+              }
+            }}
+          />
+        </FormControl>
+      </ListItem>
+    </List>
+  );
+}
+
 function App() {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [input, setInput] = useState("");
-
-  const getTodos = async () => {
-    const response = await fetch("http://localhost:8080/api/v1/todos");
-    const data = await response.json();
-    setTodos(data.todos);
-  };
-
-  const createTodo = async (title: string) => {
-    const response = await fetch("http://localhost:8080/api/v1/todos", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        todo: {
-          title,
-        },
-      }),
-    });
-    const data = await response.json();
-    setTodos([...todos, data.todo]);
-  };
-
-  const deleteTodo = async (id: number) => {
-    const response = await fetch(`http://localhost:8080/api/v1/todos/${id}`, {
-      method: "DELETE",
-    });
-    const data = await response.json();
-    setTodos(todos.filter((todo) => todo.id !== id));
-  };
-
-  useEffect(() => {
-    getTodos();
-  }, []);
-
   return (
     <Container>
       <Paper>
-        <List>
-          {todos.map((todo) => (
-            <ListItem
-              key={todo.id}
-              secondaryAction={
-                <IconButton
-                  onClick={() => {
-                    deleteTodo(todo.id);
-                  }}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              }
-            >
-              <ListItemButton>
-                <ListItemIcon>
-                  <Checkbox />
-                </ListItemIcon>
-                <ListItemText primary={todo.title} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-          <ListItem>
-            <FormControl>
-              <TextField
-                fullWidth
-                label="Enter a todo..."
-                value={input}
-                onChange={(e) => {
-                  setInput(e.target.value);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    createTodo(input);
-                    setInput("");
-                  }
-                }}
-              />
-            </FormControl>
-          </ListItem>
-        </List>
+        <TodoList />
+        <TodoInput />
       </Paper>
     </Container>
   );
