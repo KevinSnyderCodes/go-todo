@@ -18,22 +18,30 @@ import { Delete as DeleteIcon } from "@mui/icons-material";
 
 import { useQuery, useMutation, gql } from "@apollo/client";
 
-type Todo = {
-  id: number;
+// TODO: Move types elsewhere
+// TODO: Move GraphQL queries/mutations elsewhere
+// TODO: Move components elsewhere
+// (Maybe couple components, queries/mutations, and types?)
+// (Maybe couple queries/mutations and types, then import to components?)
+
+type GraphQLID = string;
+
+type GraphQLTodo = {
+  id: GraphQLID;
   title: string;
 };
 
-const LIST_TODOS = gql`
-  query ListTodos {
-    listTodos {
+const TODOS = gql`
+  query Todos {
+    todos {
       id
       title
     }
   }
 `;
 
-type ListTodosResponse = {
-  listTodos: Todo[];
+type GraphQLTodosData = {
+  todos: GraphQLTodo[];
 };
 
 const CREATE_TODO = gql`
@@ -45,8 +53,16 @@ const CREATE_TODO = gql`
   }
 `;
 
-type CreateTodoResponse = {
-  createTodo: Todo;
+type GraphQLCreateTodoArgs = {
+  input: {
+    todo: {
+      title: string;
+    };
+  };
+};
+
+type GraphQLCreateTodoData = {
+  createTodo: GraphQLTodo;
 };
 
 const DELETE_TODO = gql`
@@ -55,10 +71,12 @@ const DELETE_TODO = gql`
   }
 `;
 
-type DeleteTodoResponse = {};
+type GraphQLDeleteTodoData = {
+  id: GraphQLID;
+};
 
 function TodoList() {
-  const { loading, error, data } = useQuery<ListTodosResponse>(LIST_TODOS);
+  const { loading, error, data } = useQuery<GraphQLTodosData>(TODOS);
 
   if (loading) return <p>Loading...</p>;
   if (error) {
@@ -66,8 +84,8 @@ function TodoList() {
     return <p>Error!</p>;
   }
 
-  let todos: Todo[] = [];
-  if (data) todos = data.listTodos;
+  let todos: GraphQLTodo[] = [];
+  if (data) todos = data.todos;
 
   return (
     <List>
@@ -79,13 +97,13 @@ function TodoList() {
 }
 
 type TodoItemProps = {
-  todo: Todo;
+  todo: GraphQLTodo;
 };
 
 function TodoItem({ todo }: TodoItemProps) {
   const [deleteTodo, { loading, error, data }] =
-    useMutation<DeleteTodoResponse>(DELETE_TODO, {
-      refetchQueries: [LIST_TODOS],
+    useMutation<GraphQLDeleteTodoData>(DELETE_TODO, {
+      refetchQueries: [TODOS],
       awaitRefetchQueries: true,
     });
 
@@ -127,10 +145,12 @@ function TodoItem({ todo }: TodoItemProps) {
 
 function TodoInput() {
   const [value, setValue] = useState("");
-  const [createTodo, { loading, error, data }] =
-    useMutation<CreateTodoResponse>(CREATE_TODO, {
-      refetchQueries: [LIST_TODOS],
-    });
+  const [createTodo, { loading, error, data }] = useMutation<
+    GraphQLCreateTodoData,
+    GraphQLCreateTodoArgs
+  >(CREATE_TODO, {
+    refetchQueries: [TODOS],
+  });
 
   if (loading) return <p>Loading...</p>;
   if (error) {
@@ -154,7 +174,9 @@ function TodoInput() {
                 createTodo({
                   variables: {
                     input: {
-                      title: value,
+                      todo: {
+                        title: value,
+                      },
                     },
                   },
                 });

@@ -3,7 +3,7 @@ import { graphqlHTTP } from "express-graphql";
 import { buildSchema } from "graphql";
 import path from "path";
 import * as fs from "fs";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 
 const PORT = process.env.PORT || 4000;
 const GRAPHQL_FILENAME =
@@ -15,65 +15,105 @@ console.debug(PORT);
 console.debug(GRAPHQL_FILENAME);
 console.debug(API_HOST);
 
-const schemaFile = fs.readFileSync(GRAPHQL_FILENAME, "utf8");
+// TODO: Move types elsewhere
 
-type Todo = {
+type GraphQLID = string;
+
+type GraphQLTodo = {
+  id: GraphQLID;
+  title: string;
+};
+
+type GraphQLTodoArgs = {
+  id: GraphQLID;
+};
+
+type GraphQLTodoResponse = GraphQLTodo;
+
+type GraphQLTodosArgs = {
+  input: {
+    filters: {
+      // TODO: Add fields
+    };
+  };
+};
+
+type GraphQLTodosResponse = GraphQLTodo[];
+
+type GraphQLCreateTodoArgs = {
+  input: {
+    todo: {
+      title: string;
+    };
+  };
+};
+
+type GraphQLCreateTodoResponse = GraphQLTodo;
+
+type GraphQLDeleteTodoArgs = {
+  id: GraphQLID;
+};
+
+type GraphQLDeleteTodoResponse = GraphQLID;
+
+type APITodo = {
   id: string;
   title: string;
 };
 
-type GetTodoInput = {
-  id: number;
+type APIGetTodoResponse = {
+  todo: APITodo;
 };
 
-type CreateTodoInput = {
-  input: {
+type APIListTodosResponse = {
+  todos: APITodo[];
+};
+
+type APICreateTodoRequest = {
+  todo: {
     title: string;
   };
 };
 
-type DeleteTodoInput = {
-  id: number;
+type APICreateTodoResponse = {
+  todo: APITodo;
 };
 
-type GetTodoResponse = {
-  todo: Todo;
-};
+type APIDeleteTodoResponse = {};
 
-type ListTodosResponse = {
-  todos: Todo[];
-};
-
-type CreateTodoResponse = {
-  todo: Todo;
-};
-
-type DeleteTodoResponse = {};
-
+const schemaFile = fs.readFileSync(GRAPHQL_FILENAME, "utf8");
 const schema = buildSchema(schemaFile);
 
 const root = {
-  getTodo: async ({ id }: GetTodoInput): Promise<Todo> => {
-    const response = await axios.get<GetTodoResponse>(
+  todo: async ({ id }: GraphQLTodoArgs): Promise<GraphQLTodoResponse> => {
+    const response = await axios.get<APIGetTodoResponse>(
       `${API_HOST}/api/v1/todos/${id}`
     );
     return response.data.todo;
   },
-  listTodos: async (): Promise<Todo[]> => {
-    const response = await axios.get<ListTodosResponse>(
+  todos: async (args: GraphQLTodosArgs): Promise<GraphQLTodosResponse> => {
+    const response = await axios.get<APIListTodosResponse>(
       `${API_HOST}/api/v1/todos`
     );
     return response.data.todos;
   },
-  createTodo: async ({ input }: CreateTodoInput): Promise<Todo> => {
+  createTodo: async ({
+    input: { todo },
+  }: GraphQLCreateTodoArgs): Promise<GraphQLCreateTodoResponse> => {
     // TODO: Figure out how to replace any type with CreateTodoResponse type
-    const response = await axios.post<any>(`${API_HOST}/api/v1/todos`, {
-      todo: input,
+    const response = await axios.post<
+      APICreateTodoRequest,
+      AxiosResponse<APICreateTodoResponse>
+    >(`${API_HOST}/api/v1/todos`, {
+      todo,
     });
     return response.data.todo;
   },
-  deleteTodo: async ({ id }: DeleteTodoInput) => {
-    await axios.delete<DeleteTodoResponse>(`${API_HOST}/api/v1/todos/${id}`);
+  deleteTodo: async ({
+    id,
+  }: GraphQLDeleteTodoArgs): Promise<GraphQLDeleteTodoResponse> => {
+    await axios.delete<APIDeleteTodoResponse>(`${API_HOST}/api/v1/todos/${id}`);
+    return id;
   },
 };
 

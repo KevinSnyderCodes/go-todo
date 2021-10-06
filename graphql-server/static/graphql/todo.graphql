@@ -3,13 +3,27 @@ type Todo {
   title: String
 }
 
+input TodosInput {
+  filters: TodosInputFilters
+}
+
+input TodosInputFilters {
+  _: Boolean
+
+  # TODO: Add fields
+}
+
 input CreateTodoInput {
+  todo: CreateTodoInputTodo
+}
+
+input CreateTodoInputTodo {
   title: String
 }
 
 type Query {
-  getTodo(id: ID): Todo
-  listTodos: [Todo]
+  todo(id: ID): Todo
+  todos(input: TodosInput): [Todo]
 }
 
 type Mutation {
